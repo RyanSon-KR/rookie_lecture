@@ -1013,10 +1013,9 @@
       <div class="wrap">
         <div class="section-title">
           <div class="section-kicker">Live Board</div>
-          <h2>실제 운영 가능한 보드 구조</h2>
+          <h2>여기서 참여하면 됩니다</h2>
           <p>
-            입력 링크와 발표 보드를 분리했습니다. 모바일에서는 <strong>Tally / Google Form</strong>을 열고,
-            PC 발표 화면에서는 <strong>JSON · Google Sheets · Supabase 응답</strong>을 읽어 팀별 결과를 렌더링합니다.
+            아래에서 <strong>팀 정보 제출</strong> 또는 <strong>질문 보내기</strong>를 하면, 발표 화면(lecture mode)에 바로 모입니다.
           </p>
         </div>
 
@@ -1078,7 +1077,7 @@
             <p id="syncMeta" class="small" style="margin-top: 10px;">마지막 동기화: 대기 중</p>
           </div>
 
-          <div class="tool-card">
+          <div class="tool-card" id="qrShareCard" hidden>
             <h3>2) QR / 링크 공유</h3>
             <p class="small">배포 URL이 감지되면 발표 보드 QR이 자동으로 만들어집니다. 학생 입력용 폼 QR은 별도 폼 링크를 넣었을 때만 활성화됩니다.</p>
 
@@ -1131,31 +1130,31 @@
             <form id="publicTeamForm" class="form-grid">
               <div class="field">
                 <label for="publicTeamName">팀 이름</label>
-                <input id="publicTeamName" name="teamName" type="text" placeholder="예: 1팀 / 2팀" required />
+                <input id="publicTeamName" name="teamName" type="text" placeholder="예: 캠퍼스픽업팀" required />
               </div>
               <div class="field">
                 <label for="publicTeamItem">아이템</label>
-                <input id="publicTeamItem" name="teamItem" type="text" placeholder="예: 대학생 멘토 매칭" required />
+                <input id="publicTeamItem" name="teamItem" type="text" placeholder="예: 기숙사 앞 5분 픽업 카트" required />
               </div>
               <div class="field">
                 <label for="publicTeamTarget">타깃 고객</label>
-                <input id="publicTeamTarget" name="teamTarget" type="text" placeholder="예: 새내기 대학생" required />
+                <input id="publicTeamTarget" name="teamTarget" type="text" placeholder="예: 야간 자취/기숙사 학생" required />
               </div>
               <div class="field">
                 <label for="publicTeamCta">핵심 CTA</label>
-                <input id="publicTeamCta" name="teamCTA" type="text" placeholder="예: 첫 멘토링 신청하기" required />
+                <input id="publicTeamCta" name="teamCTA" type="text" placeholder="예: 오늘 픽업 신청하기" required />
               </div>
               <div class="field-full">
                 <label for="publicTeamProblem">해결하려는 문제</label>
-                <textarea id="publicTeamProblem" name="teamProblem" placeholder="예: 전공/진로 정보를 빠르게 얻기 어려움"></textarea>
+                <textarea id="publicTeamProblem" name="teamProblem" placeholder="예: 늦은 시간에 먹을/살 곳이 멀고 선택지가 적음"></textarea>
               </div>
               <div class="field-full">
                 <label for="publicTeamBudget">예산/보유 자원 활용 계획</label>
-                <textarea id="publicTeamBudget" name="teamBudget" placeholder="예: 광고 2만 원 + 학내 커뮤니티 + 기존 SNS 활용"></textarea>
+                <textarea id="publicTeamBudget" name="teamBudget" placeholder="예: 전단 1만 원 + 학내 단톡 공지 + 1주 시범 운영"></textarea>
               </div>
               <div class="field-full">
                 <label for="publicTeamLinks">폼/랜딩 링크</label>
-                <input id="publicTeamLinks" name="teamLinks" type="url" placeholder="https://example.com" />
+                <input id="publicTeamLinks" name="teamLinks" type="url" placeholder="예: https://forms.gle/xxxx 또는 https://example.com" />
               </div>
               <div class="field-full dash-actions">
                 <button class="btn btn-primary" type="submit">제출하기</button>
