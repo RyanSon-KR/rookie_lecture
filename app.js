@@ -5,6 +5,7 @@
   const PUBLIC_ANNOUNCEMENT_SEEN_KEY = 'rookie-public-announcement-seen-v1';
   const PUBLIC_ACCESS_KEY = 'rookie-public-access-v1';
   const LECTURE_ACCESS_KEY = 'rookie-lecture-access-v1';
+  const VISITOR_ID_KEY = 'rookie-pretotype-visitor-id-v1';
   const PUBLIC_PASSWORD = '0331';
   const LECTURE_PASSWORD = '990323';
   const REFRESH_INTERVAL_MS = 30000;
@@ -47,7 +48,7 @@
     metricTeams: $('#metricTeams'),
     metricCtas: $('#metricCtas'),
     metricLinks: $('#metricLinks'),
-    metricResources: $('#metricResources'),
+    metricVisitors: $('#metricVisitors'),
     dataSourceType: $('#dataSourceType'),
     dataSourceUrl: $('#dataSourceUrl'),
     formUrl: $('#formUrl'),
@@ -55,6 +56,7 @@
     supabaseTable: $('#supabaseTable'),
     supabaseQuestionsTable: $('#supabaseQuestionsTable'),
     supabaseAnnouncementsTable: $('#supabaseAnnouncementsTable'),
+    supabaseVisitsTable: $('#supabaseVisitsTable'),
     applySourceConfig: $('#applySourceConfig'),
     refreshBoard: $('#refreshBoard'),
     boardStatus: $('#boardStatus'),
@@ -102,12 +104,14 @@
     supabaseTable: 'pretotype_board_entries',
     supabaseQuestionsTable: 'pretotype_questions',
     supabaseAnnouncementsTable: 'pretotype_announcements',
+    supabaseVisitsTable: 'pretotype_visits',
     theme: 'dark',
     pageView: 'public'
   };
 
   let refreshTimer = null;
   let communicationTimer = null;
+  let visitRegistered = false;
 
   function escapeHtml(value = '') {
     return String(value).replace(/[&<>"']/g, (char) => ({
@@ -162,17 +166,32 @@
     if (params.get('sbtable')) overrides.supabaseTable = params.get('sbtable');
     if (params.get('sbqtable')) overrides.supabaseQuestionsTable = params.get('sbqtable');
     if (params.get('sbatable')) overrides.supabaseAnnouncementsTable = params.get('sbatable');
+    if (params.get('sbvtable')) overrides.supabaseVisitsTable = params.get('sbvtable');
     if (params.get('theme')) overrides.theme = params.get('theme');
     if (params.get('view')) overrides.pageView = params.get('view');
 
     return overrides;
   }
 
+  function getSystemPreferredTheme() {
+    try {
+      return window.matchMedia?.('(prefers-color-scheme: light)')?.matches ? 'light' : 'dark';
+    } catch (error) {
+      return 'dark';
+    }
+  }
+
+  const storedSettings = readJsonStorage(SETTINGS_STORAGE_KEY, {});
+  const queryOverrides = getQueryOverrides();
+
   const state = {
     settings: {
       ...defaultSettings,
-      ...readJsonStorage(SETTINGS_STORAGE_KEY, {}),
-      ...getQueryOverrides()
+      ...storedSettings,
+      ...queryOverrides,
+      ...((!Object.prototype.hasOwnProperty.call(storedSettings, 'theme') && !Object.prototype.hasOwnProperty.call(queryOverrides, 'theme'))
+        ? { theme: getSystemPreferredTheme() }
+        : {})
     },
     teams: readJsonStorage(BOARD_STORAGE_KEY, []),
     communication: readJsonStorage(COMMUNICATION_STORAGE_KEY, { questions: [], lectureAnnouncement: null }),
@@ -585,6 +604,87 @@
     }
   }
 
+  class SupabaseVisitsAdapter {
+    constructor(url, anonKey, table = 'pretotype_visits') {
+      this.url = normalizeUrl(url);
+      this.anonKey = String(anonKey || '').trim();
+      this.table = String(table || 'pretotype_visits').trim() || 'pretotype_visits';
+    }
+
+    get headers() {
+      return {
+        apikey: this.anonKey,
+        Authorization: `Bearer ${this.anonKey}`
+      };
+    }
+
+    async upsertVisit(visitorId) {
+      if (!this.url) {
+        throw new Error('Supabase 프로젝트 URL이 비어 있습니다.');
+      }
+      if (!this.anonKey) {
+        throw new Error('Supabase anon key를 입력하십시오.');
+      }
+
+      const cleanId = String(visitorId || '').trim();
+      if (!cleanId) {
+        return;
+      }
+
+      const endpointBase = buildSupabaseTableUrl(this.url, this.table).replace(/\?select=\*$/, '');
+      const endpoint = `${endpointBase}?on_conflict=id`;
+      const record = {
+        id: cleanId,
+        created_at: new Date().toISOString()
+      };
+
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          ...this.headers,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify([record])
+      });
+    }
+
+    async fetchCount() {
+      if (!this.url) {
+        throw new Error('Supabase 프로젝트 URL이 비어 있습니다.');
+      }
+      if (!this.anonKey) {
+        throw new Error('Supabase anon key를 입력하십시오.');
+      }
+
+      const endpoint = buildSupabaseRestUrl(this.url, this.table, {
+        select: 'id',
+        limit: '1'
+      });
+      const response = await fetch(endpoint, {
+        cache: 'no-store',
+        headers: {
+          ...this.headers,
+          Prefer: 'count=exact'
+        }
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`참여자 수 조회 실패 (${response.status}) ${detail.slice(0, 120)}`.trim());
+      }
+
+      const range = response.headers.get('content-range') || '';
+      const match = range.match(/\/(\d+)\s*$/);
+      if (match) {
+        return Number(match[1]);
+      }
+
+      const payload = await response.json();
+      return Array.isArray(payload) ? payload.length : 0;
+    }
+  }
+
   function parseGoogleWrapper(text) {
     const trimmed = text.trim();
     const match = trimmed.match(/setResponse\((.*)\);?$/s);
@@ -700,6 +800,14 @@
     );
   }
 
+  function createVisitsAdapter() {
+    return new SupabaseVisitsAdapter(
+      state.settings.sourceUrl,
+      state.settings.supabaseKey,
+      state.settings.supabaseVisitsTable
+    );
+  }
+
   function isSupabaseConfigured() {
     return state.settings.sourceType === 'supabase'
       && Boolean(normalizeUrl(state.settings.sourceUrl))
@@ -710,7 +818,6 @@
     els.metricTeams.textContent = String(teams.length);
     els.metricCtas.textContent = String(teams.filter((team) => team.teamCTA).length);
     els.metricLinks.textContent = String(teams.filter((team) => team.teamLinks).length);
-    els.metricResources.textContent = String(teams.filter((team) => team.teamBudget).length);
   }
 
   function renderBoard(teams) {
@@ -942,6 +1049,39 @@
     return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  function getOrCreateVisitorId() {
+    try {
+      const existing = localStorage.getItem(VISITOR_ID_KEY) || '';
+      if (existing) {
+        return existing;
+      }
+
+      const next = createMessageId('visitor');
+      localStorage.setItem(VISITOR_ID_KEY, next);
+      return next;
+    } catch (error) {
+      return createMessageId('visitor');
+    }
+  }
+
+  async function registerVisit() {
+    if (visitRegistered || !isSupabaseConfigured()) {
+      return;
+    }
+
+    if (state.settings.pageView !== 'public') {
+      return;
+    }
+
+    if (!state.publicAuthorized) {
+      return;
+    }
+
+    visitRegistered = true;
+    const adapter = createVisitsAdapter();
+    await adapter.upsertVisit(getOrCreateVisitorId());
+  }
+
   function saveCommunicationState(nextCommunication) {
     state.communication = nextCommunication;
     saveJsonStorage(COMMUNICATION_STORAGE_KEY, nextCommunication);
@@ -1125,6 +1265,7 @@
     if (els.supabaseTable) els.supabaseTable.value = state.settings.supabaseTable || 'pretotype_board_entries';
     if (els.supabaseQuestionsTable) els.supabaseQuestionsTable.value = state.settings.supabaseQuestionsTable || 'pretotype_questions';
     if (els.supabaseAnnouncementsTable) els.supabaseAnnouncementsTable.value = state.settings.supabaseAnnouncementsTable || 'pretotype_announcements';
+    if (els.supabaseVisitsTable) els.supabaseVisitsTable.value = state.settings.supabaseVisitsTable || 'pretotype_visits';
     applyPageView(state.settings.pageView);
     updateModeUI();
     updateShareLinks();
@@ -1196,6 +1337,12 @@
       };
       renderCommunication();
       maybeShowPublicAnnouncement();
+
+      if (els.metricVisitors && state.settings.pageView === 'lecture') {
+        const visitsAdapter = createVisitsAdapter();
+        const visitorCount = await visitsAdapter.fetchCount();
+        els.metricVisitors.textContent = Number.isFinite(visitorCount) ? String(visitorCount) : '-';
+      }
     } catch (error) {
       if (els.publicStatus && state.settings.pageView === 'public') {
         setPublicStatus(error.message || 'Supabase 통신에 실패했습니다.', 'error');
@@ -1338,6 +1485,7 @@
     state.settings.supabaseTable = els.supabaseTable?.value?.trim() || 'pretotype_board_entries';
     state.settings.supabaseQuestionsTable = els.supabaseQuestionsTable?.value?.trim() || 'pretotype_questions';
     state.settings.supabaseAnnouncementsTable = els.supabaseAnnouncementsTable?.value?.trim() || 'pretotype_announcements';
+    state.settings.supabaseVisitsTable = els.supabaseVisitsTable?.value?.trim() || 'pretotype_visits';
     saveSettings();
     updateShareLinks();
     manageAutoRefresh();
@@ -1540,6 +1688,7 @@
       applyPageView('public');
       saveSettings();
       updateShareLinks();
+      registerVisit().catch(() => {});
       setStatus('Public mode 입장이 승인되었습니다.', 'ok');
       return;
     }
@@ -1580,6 +1729,7 @@
       applyPageView('public');
       saveSettings();
       updateShareLinks();
+      registerVisit().catch(() => {});
       setStatus('팝업을 닫고 public mode 페이지로 이동했습니다.', 'ok');
     });
     els.themeToggle?.addEventListener('click', () => {
@@ -1629,6 +1779,7 @@
       showLectureGate(true, 'Public mode에 들어가려면 비밀번호를 입력하십시오.', 'public');
     } else {
       showLectureGate(false);
+      registerVisit().catch(() => {});
     }
 
     updateConfigFields();
