@@ -741,14 +741,15 @@
 <body class="theme-dark" data-page-view="public">
   <header class="topbar">
     <div class="wrap topbar-inner">
-      <div class="brand">Pretotype Sprint · Student Lab Board</div>
+      <div class="brand">프리토타입 스프린트 · 학생 실험 보드</div>
       <nav class="nav">
         <a class="lecture-only" href="#why">왜 프리토타입인가</a>
         <a class="lecture-only" href="#compare">비교</a>
         <a class="lecture-only" href="#flow">실습 흐름</a>
         <a class="public-only" href="#public-guide">참여 안내</a>
         <a class="public-only" href="#basics">CTA/랜딩 개념</a>
-        <a href="#live">실시간 보드</a>
+        <a class="public-only" href="#startup">창업/용어</a>
+        <a href="#live">참여/보드</a>
         <a class="lecture-only" href="#tools">연결 가이드</a>
       </nav>
       <div class="page-mode-toggle" aria-label="페이지 보기 전환">
@@ -762,7 +763,7 @@
     <div class="password-gate" role="dialog" aria-modal="true" aria-labelledby="lectureGateTitle">
       <div class="section-kicker" id="lectureGateKicker">Public Access</div>
       <h2 id="lectureGateTitle">Public mode 비밀번호 입력</h2>
-      <p class="small" id="lectureGateDescription">처음 접속하면 public mode 비밀번호 입력 창이 먼저 표시됩니다.</p>
+      <p class="small" id="lectureGateDescription">이 화면은 접근을 위해 비밀번호가 필요합니다.</p>
       <form id="lecturePasswordForm" class="field-full">
         <label for="lecturePasswordInput">비밀번호</label>
         <input id="lecturePasswordInput" type="password" placeholder="public 비밀번호 입력" autocomplete="current-password" />
@@ -771,7 +772,7 @@
           <button class="btn btn-ghost" type="button" id="cancelLectureAccess">닫기</button>
         </div>
       </form>
-      <p class="small" id="lecturePasswordMessage" style="margin-top: 12px;">public 비밀번호를 입력하거나 창을 닫고 public mode 페이지로 이동할 수 있습니다.</p>
+      <p class="small" id="lecturePasswordMessage" style="margin-top: 12px;">비밀번호를 입력해 주세요.</p>
     </div>
   </div>
 
@@ -790,14 +791,14 @@
     <section class="hero">
       <div class="wrap hero-grid">
         <div class="hero-card">
-          <div class="badge">학생 중심 실습 페이지 · Mobile Input / PC Board</div>
+          <div class="badge">학생 실험 페이지 · 제출/질문/발표 보드</div>
           <h1>만들기 전에 먼저,<br />사람의 행동을 확인하십시오.</h1>
           <p class="lecture-only">
             이 페이지는 학생 팀이 <strong>프리토타입 실험</strong>을 빠르게 운영하도록 정리한 단일 보드입니다.
             입력은 <strong>Tally 또는 Google Form</strong>으로 바꾸고, 발표 PC는 <strong>외부 JSON 또는 Google Sheets 응답</strong>만 읽어 실시간 보드를 구성할 수 있습니다.
           </p>
           <p class="public-only">
-            이 화면은 학생/외부 참가자용 <strong>최소 입력 랜딩</strong>입니다. 아래 안내를 보고 링크를 열거나 바로 폼을 제출하면 됩니다.
+            이 화면은 학생/참가자용 <strong>실험 참여 화면</strong>입니다. 아래 안내대로 팀 정보를 제출하고, 궁금한 점은 질문으로 남기면 됩니다.
           </p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="#live">지금 참여하기</a>
@@ -1414,6 +1415,73 @@
       </div>
     </section>
 
+    <section class="section anchor-offset public-only" id="startup">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Startup 101</div>
+          <h2>창업과 장사의 차이 + 자주 쓰는 스타트업 용어</h2>
+          <p>
+            실습에서 가장 중요한 것은 “멋진 말”이 아니라 <strong>누가, 어떤 상황에서, 무엇을 하게 되는지</strong>를 잡는 것입니다.
+            아래를 참고해서 팀 아이템/타깃/CTA를 더 또렷하게 만드세요.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>창업 vs 장사</h3>
+            <ul class="list">
+              <li><strong>장사</strong> · 이미 검증된 수요를 대상으로 “운영/마진/반복”을 최적화합니다.</li>
+              <li><strong>창업(스타트업)</strong> · 아직 확실하지 않은 수요를 대상으로 “문제/해결/채널”을 빠르게 검증합니다.</li>
+              <li>실습에서는 <strong>매출</strong>보다 먼저 <strong>행동 신호</strong>(클릭/신청/제출/DM)를 만듭니다.</li>
+              <li>한 줄 기준: 장사는 <strong>잘 파는 일</strong>, 창업은 <strong>무엇을 팔아야 하는지 찾는 일</strong>입니다.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>실습에서 바로 쓰는 질문</h3>
+            <ul class="list">
+              <li><strong>타깃</strong>은 누구인가? (지금 당장 불편한 사람)</li>
+              <li><strong>문제</strong>는 무엇인가? (한 문장으로)</li>
+              <li><strong>제안</strong>은 무엇인가? (왜 우리인가)</li>
+              <li><strong>CTA</strong>는 무엇인가? (지금 하게 만들 행동 1개)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top: 18px;">
+          <div class="tool-card">
+            <h3>제품/문제 용어</h3>
+            <ul class="list">
+              <li><strong>가설(Hypothesis)</strong> · “이 타깃은 이런 문제로 이 행동을 할 것이다”</li>
+              <li><strong>MVP</strong> · 기능 최소가 아니라 “검증 최소”에 필요한 것만</li>
+              <li><strong>PMF</strong> · 고객이 계속 쓰고/추천하고/돈을 내는 상태</li>
+              <li><strong>피벗(Pivot)</strong> · 문제/타깃/채널을 바꿔 다시 검증</li>
+            </ul>
+          </div>
+
+          <div class="tool-card">
+            <h3>고객/지표 용어</h3>
+            <ul class="list">
+              <li><strong>ICP</strong> · 가장 먼저 만족시켜야 할 “핵심 고객” 정의</li>
+              <li><strong>퍼널(Funnel)</strong> · 유입 → 클릭 → 신청 → 결제 흐름</li>
+              <li><strong>리텐션/이탈</strong> · 다시 쓰는 비율 / 떠나는 비율</li>
+              <li><strong>NSM</strong> · 팀이 매주 관리할 핵심 지표 1개</li>
+            </ul>
+          </div>
+
+          <div class="tool-card">
+            <h3>돈/성장 용어</h3>
+            <ul class="list">
+              <li><strong>CAC</strong> · 고객 1명 얻는 비용</li>
+              <li><strong>LTV</strong> · 고객 1명이 남기는 총 가치</li>
+              <li><strong>유닛 이코노믹스</strong> · 한 명을 더 늘릴 때 돈이 남는 구조</li>
+              <li><strong>번/런웨이</strong> · 한 달 소모 / 버틸 수 있는 기간</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="section">
       <div class="wrap">
         <div class="cta-band">
@@ -1422,8 +1490,9 @@
             <p>“사람들이 실제로 클릭하고 제출했는가?” 이 질문에 답할 수 있으면, 이미 첫 검증은 시작된 것입니다.</p>
           </div>
           <div class="hero-actions" style="margin-top: 0;">
-            <a class="btn btn-primary" href="#live">보드 설정 열기</a>
-            <a class="btn btn-secondary" href="#tools">연결 가이드 보기</a>
+            <a class="btn btn-primary" href="#live">지금 참여하기</a>
+            <a class="btn btn-secondary public-only" href="#startup">창업/용어 빠르게 보기</a>
+            <a class="btn btn-secondary lecture-only" href="#tools">연결 가이드 보기</a>
           </div>
         </div>
       </div>
@@ -1435,7 +1504,7 @@
 
   <footer class="footer">
     <div class="wrap">
-      <p><strong>Pretotype Sprint Board</strong> · 학생 실습용 단일 페이지 · Demo/Live 운영 지원</p>
+      <p><strong>프리토타입 스프린트 보드</strong> · 학생 실습용 단일 페이지 · Demo/Live 운영 지원</p>
       <p class="small">실제 운영 시에는 CORS 허용된 JSON, 공개 Google Sheets, 또는 webhook으로 만든 응답 엔드포인트를 연결하면 됩니다.</p>
     </div>
   </footer>

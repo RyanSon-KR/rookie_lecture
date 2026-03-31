@@ -5,7 +5,7 @@
   const PUBLIC_ANNOUNCEMENT_SEEN_KEY = 'rookie-public-announcement-seen-v1';
   const PUBLIC_ACCESS_KEY = 'rookie-public-access-v1';
   const LECTURE_ACCESS_KEY = 'rookie-lecture-access-v1';
-  const PUBLIC_PASSWORD = '0330';
+  const PUBLIC_PASSWORD = '0331';
   const LECTURE_PASSWORD = '990323';
   const REFRESH_INTERVAL_MS = 30000;
   const SUPABASE_LIVE_REFRESH_INTERVAL_MS = 5000;
@@ -624,7 +624,7 @@
       teamProblem: pickValue(record, ['teamProblem', 'problem', 'painPoint', '문제', '해결하려는 문제']),
       teamBudget: pickValue(record, ['teamBudget', 'budget', 'resources', '예산', '자원', '예산/보유 자원 활용 계획']),
       teamLinks: normalizeUrl(pickValue(record, ['teamLinks', 'link', 'url', 'landingUrl', 'formUrl', '링크', '폼/랜딩 링크'])),
-      createdAt: pickValue(record, ['createdAt', 'timestamp', 'submittedAt', 'submitted_at', '제출시간'])
+      createdAt: pickValue(record, ['createdAt', 'created_at', 'timestamp', 'submittedAt', 'submitted_at', '제출시간'])
     };
   }
 
@@ -1068,7 +1068,7 @@
     }
   }
 
-  function showLectureGate(visible, message = '비밀번호를 입력하거나 창을 닫고 public mode로 이동하십시오.', gateMode = 'public') {
+  function showLectureGate(visible, message = '비밀번호를 입력하십시오.', gateMode = 'public') {
     if (!els.lectureGate) {
       return;
     }
@@ -1292,14 +1292,14 @@
 
   function handlePageViewChange(view) {
     if (view === 'lecture' && !state.lectureAuthorized) {
-      showLectureGate(true, 'Lecture mode에 들어가려면 비밀번호 990323을 입력하십시오.', 'lecture');
+      showLectureGate(true, 'Lecture mode에 들어가려면 비밀번호를 입력하십시오.', 'lecture');
       setStatus('Lecture mode는 비밀번호 입력 후에만 열 수 있습니다.', 'loading');
       return;
     }
 
     if (view === 'public' && !state.publicAuthorized) {
-      showLectureGate(true, 'Public mode 비밀번호 0330을 입력하거나 창을 닫으십시오.', 'public');
-      setStatus('처음에는 public mode 비밀번호 입력 창이 먼저 표시됩니다.', 'loading');
+      showLectureGate(true, 'Public mode에 들어가려면 비밀번호를 입력하십시오.', 'public');
+      setStatus('Public mode는 비밀번호 입력 후에만 열 수 있습니다.', 'loading');
       return;
     }
 
@@ -1530,7 +1530,7 @@
 
     if (state.pendingGateMode === 'public') {
       if (enteredPassword !== PUBLIC_PASSWORD) {
-        showLectureGate(true, '비밀번호가 올바르지 않습니다. public 비밀번호 0330을 다시 입력하거나 창을 닫으십시오.', 'public');
+        showLectureGate(true, '비밀번호가 올바르지 않습니다. 다시 입력하십시오.', 'public');
         setStatus('Public mode 비밀번호가 일치하지 않습니다.', 'error');
         return;
       }
@@ -1545,7 +1545,7 @@
     }
 
     if (enteredPassword !== LECTURE_PASSWORD) {
-      showLectureGate(true, '비밀번호가 올바르지 않습니다. lecture 비밀번호 990323을 다시 입력하십시오.', 'lecture');
+      showLectureGate(true, '비밀번호가 올바르지 않습니다. 다시 입력하십시오.', 'lecture');
       setStatus('Lecture mode 비밀번호가 일치하지 않습니다.', 'error');
       return;
     }
@@ -1626,7 +1626,7 @@
     }
 
     if (!state.publicAuthorized) {
-      showLectureGate(true, 'Public mode 비밀번호 0330을 입력하거나 창을 닫으십시오.', 'public');
+      showLectureGate(true, 'Public mode에 들어가려면 비밀번호를 입력하십시오.', 'public');
     } else {
       showLectureGate(false);
     }
