@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>학생 프리토타이핑 실험 보드</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2315171a'/%3E%3Cpath d='M18 22h28v6H18zm0 14h20v6H18z' fill='%238ca3ff'/%3E%3Ccircle cx='44' cy='39' r='6' fill='%23a6d18f'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg: #141619;
+      --bg-soft: #1b1f24;
+      --panel: rgba(26, 29, 34, 0.92);
+      --panel-2: rgba(34, 38, 45, 0.95);
+      --text: #f3f4f6;
+      --text-strong: #ffffff;
+      --muted: #b9bec7;
+      --line: rgba(255,255,255,0.11);
+      --accent: #8ca3ff;
+      --accent-2: #9ec59a;
+      --warning: #f0ca72;
+      --danger: #ff8f8f;
+      --shadow: 0 18px 50px rgba(0,0,0,0.24);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --max: 1180px;
+      --topbar-bg: rgba(20, 22, 25, 0.78);
+      --glow-1: rgba(140, 163, 255, 0.14);
+      --glow-2: rgba(158, 197, 154, 0.08);
+    }
+
+    body.theme-light {
+      --bg: #f3f4f6;
+      --bg-soft: #ffffff;
+      --panel: rgba(255,255,255,0.96);
+      --panel-2: rgba(248,249,251,0.98);
+      --text: #17191d;
+      --text-strong: #090b0f;
+      --muted: #66707d;
+      --line: rgba(15,23,42,0.10);
+      --accent: #4d63f0;
+      --accent-2: #2d8b67;
+      --warning: #c98b1f;
+      --danger: #bf4c4c;
+      --shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+      --topbar-bg: rgba(255,255,255,0.84);
+      --glow-1: rgba(77, 99, 240, 0.08);
+      --glow-2: rgba(45, 139, 103, 0.05);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+      background:
+        radial-gradient(circle at top right, var(--glow-1), transparent 28%),
+        radial-gradient(circle at left 20%, var(--glow-2), transparent 22%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+      color: var(--text);
+      line-height: 1.65;
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    strong { color: var(--text-strong); }
+    h1, h2, h3, h4 { margin: 0; }
+
+    .wrap {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(18px);
+      background: var(--topbar-bg);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 0;
+    }
+
+    .brand {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: var(--text-strong);
+    }
+
+    .nav {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .nav a {
+      font-size: 13px;
+      color: var(--muted);
+      transition: 0.2s ease;
+    }
+
+    .nav a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: white;
+      box-shadow: 0 12px 30px rgba(78, 96, 150, 0.18);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--line);
+      color: var(--text);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--muted);
+    }
+
+    .hero {
+      padding: 82px 0 48px;
+    }
+
+    .hero-grid,
+    .grid-3,
+    .grid-2,
+    .kpi-grid,
+    .tool-grid,
+    .team-grid,
+    .tips-grid,
+    .dashboard-metrics,
+    .form-grid,
+    .qr-wrap {
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero-grid { grid-template-columns: 1.15fr 0.85fr; }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .tool-grid { grid-template-columns: 1.1fr 0.9fr; }
+    .team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tips-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .dashboard-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 18px; }
+    .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .qr-wrap { grid-template-columns: 180px 1fr; align-items: center; }
+
+    .hero-card,
+    .panel,
+    .card,
+    .team-card,
+    .tool-card,
+    .tip-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    body.theme-light .hero-card,
+    body.theme-light .panel,
+    body.theme-light .card,
+    body.theme-light .team-card,
+    body.theme-light .tool-card,
+    body.theme-light .tip-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,249,251,0.98));
+    }
+
+    .hero-card { padding: 34px; }
+    .card,
+    .tool-card,
+    .team-card,
+    .tip-card { padding: 22px; }
+
+    .badge,
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .badge {
+      padding: 8px 12px;
+      margin-bottom: 16px;
+      letter-spacing: 0.03em;
+      background: rgba(140,163,255,0.12);
+      border-color: rgba(140,163,255,0.25);
+    }
+
+    h1 {
+      font-size: clamp(32px, 4vw, 54px);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .hero p,
+    .section-title p,
+    .card p,
+    .card li,
+    .tool-card p,
+    .tool-card li,
+    .team-card p,
+    .team-card li,
+    .panel p,
+    .panel li,
+    label,
+    input,
+    textarea,
+    select {
+      color: var(--muted);
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .hero p { font-size: 17px; max-width: 760px; }
+
+    .hero-actions,
+    .dashboard-head,
+    .dash-actions,
+    .resource-tags,
+    .device-badges,
+    .team-cta-links,
+    .mode-toggle,
+    .page-mode-toggle {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .hero-actions { margin-top: 24px; }
+
+    .hero-mini {
+      padding: 26px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .metric,
+    .metric-box,
+    .step,
+    .empty-state,
+    .code-block,
+    .status-line {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+
+    .metric,
+    .metric-box { padding: 16px 18px; }
+
+    .metric .label,
+    .metric-box .k,
+    .section-kicker,
+    .subhead {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+    }
+
+    .metric .value,
+    .metric-box .v {
+      margin-top: 6px;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--text-strong);
+    }
+
+    .section { padding: 28px 0 18px; }
+    .section-title { margin-bottom: 18px; }
+
+    .section-title h2 {
+      font-size: clamp(24px, 3vw, 38px);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+    }
+
+    .list {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .compare {
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      background: rgba(255,255,255,0.03);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 16px 18px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    th {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: rgba(255,255,255,0.03);
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    .good { color: #b9ebc8; font-weight: 800; }
+    .bad { color: #ffc6c6; font-weight: 800; }
+    .warn { color: #ffe29d; font-weight: 800; }
+
+    .principle {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .principle-index {
+      min-width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      background: linear-gradient(135deg, rgba(140,163,255,0.22), rgba(158,197,154,0.16));
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--text-strong);
+    }
+
+    .step-list,
+    .team-section {
+      display: grid;
+      gap: 10px;
+    }
+
+    .step {
+      padding: 14px 16px;
+      gap: 12px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text-strong);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 16px;
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 16px;
+      align-items: start;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+    }
+
+    .time-row .time {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--accent-2);
+    }
+
+    .cta-band {
+      margin: 48px 0 16px;
+      padding: 26px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(140,163,255,0.16), rgba(158,197,154,0.12));
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .cta-band h3 {
+      font-size: clamp(22px, 2.6vw, 32px);
+      margin-bottom: 6px;
+      letter-spacing: -0.03em;
+    }
+
+    .footer {
+      padding: 26px 0 80px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .small { font-size: 13px; color: var(--muted); }
+    .anchor-offset { scroll-margin-top: 88px; }
+
+    .notice {
+      border-left: 4px solid var(--warning);
+      padding-left: 14px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .field,
+    .field-full {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field-full { grid-column: 1 / -1; }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 12px 14px;
+      outline: none;
+      color: var(--text);
+    }
+
+    body.theme-light input,
+    body.theme-light textarea,
+    body.theme-light select {
+      background: rgba(15,23,42,0.03);
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    input::placeholder,
+    textarea::placeholder { color: #98a2b3; }
+
+    .dashboard-head {
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .metric-box {
+      padding: 16px;
+    }
+
+    .empty-state {
+      padding: 26px;
+      border-style: dashed;
+      text-align: center;
+    }
+
+    .team-card {
+      display: grid;
+      gap: 14px;
+    }
+
+    .team-title-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .team-title-row h4 {
+      font-size: 22px;
+      letter-spacing: -0.03em;
+    }
+
+    .inline-code {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+
+    .qr-box {
+      width: 180px;
+      height: 180px;
+      background: #fff;
+      border-radius: 18px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .qr-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .qr-panels {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .qr-panel {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .qr-caption {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .qr-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .mode-pill {
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .mode-pill.is-active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-color: transparent;
+      color: white;
+    }
+
+    .status-line {
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+
+    .status-line[data-tone="ok"] { color: var(--text); border-color: rgba(158,197,154,0.35); }
+    .status-line[data-tone="loading"] { color: var(--text); border-color: rgba(140,163,255,0.35); }
+    .status-line[data-tone="error"] { color: var(--danger); border-color: rgba(255,143,143,0.35); }
+
+    .code-block {
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message-stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .message-item {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .message-item strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-strong);
+    }
+
+    .demo-only[hidden] {
+      display: none !important;
+    }
+
+    body[data-page-view="public"] .lecture-only {
+      display: none !important;
+    }
+
+    body[data-page-view="lecture"] .public-only {
+      display: none !important;
+    }
+
+    body[data-page-view="public"] .hero-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .password-gate-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(8, 10, 14, 0.68);
+      backdrop-filter: blur(10px);
+    }
+
+    .password-gate-overlay[hidden] {
+      display: none !important;
+    }
+
+    .password-gate {
+      width: min(460px, 100%);
+      padding: 24px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .password-gate h2 {
+      margin-bottom: 10px;
+      font-size: 26px;
+      letter-spacing: -0.03em;
+    }
+
+    .password-gate .field-full {
+      margin-top: 14px;
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 18px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      background: var(--panel-2);
+      color: var(--text-strong);
+      z-index: 70;
+      cursor: pointer;
+    }
+
+    .fab:hover { transform: translateY(-2px); }
+    .theme-fab { left: 18px; font-size: 20px; }
+    .insta-fab { right: 18px; font-size: 18px; background: linear-gradient(135deg, #fd5949, #d6249f, #285AEB); color: #fff; }
+
+    @media (max-width: 1024px) {
+      .hero-grid,
+      .grid-3,
+      .grid-2,
+      .kpi-grid,
+      .tool-grid,
+      .team-grid,
+      .tips-grid,
+      .dashboard-metrics,
+      .form-grid,
+      .qr-wrap,
+      .qr-panels {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hero { padding-top: 54px; }
+      .hero-card, .hero-mini, .card, .team-card, .panel, .tool-card, .tip-card { padding: 20px; }
+      .time-row { grid-template-columns: 1fr; }
+      .nav { gap: 10px 14px; }
+      th, td { padding: 14px; }
+      .qr-box { width: 150px; height: 150px; }
+      .team-title-row { flex-direction: column; }
+      .fab { width: 52px; height: 52px; }
+    }
+  </style>
+</head>
+<body class="theme-dark" data-page-view="public">
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">Pretotype Sprint · Student Lab Board</div>
+      <nav class="nav">
+        <a class="lecture-only" href="#why">왜 프리토타입인가</a>
+        <a class="lecture-only" href="#compare">비교</a>
+        <a class="lecture-only" href="#flow">실습 흐름</a>
+        <a class="public-only" href="#public-guide">참여 안내</a>
+        <a class="public-only" href="#basics">CTA/랜딩 개념</a>
+        <a href="#live">실시간 보드</a>
+        <a class="lecture-only" href="#tools">연결 가이드</a>
+      </nav>
+      <div class="page-mode-toggle" aria-label="페이지 보기 전환">
+        <button class="mode-pill" type="button" data-view-btn="lecture">Lecture Mode</button>
+        <button class="mode-pill is-active" type="button" data-view-btn="public">Public Mode</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="password-gate-overlay" id="lectureGate" hidden>
+    <div class="password-gate" role="dialog" aria-modal="true" aria-labelledby="lectureGateTitle">
+      <div class="section-kicker" id="lectureGateKicker">Public Access</div>
+      <h2 id="lectureGateTitle">Public mode 비밀번호 입력</h2>
+      <p class="small" id="lectureGateDescription">처음 접속하면 public mode 비밀번호 입력 창이 먼저 표시됩니다.</p>
+      <form id="lecturePasswordForm" class="field-full">
+        <label for="lecturePasswordInput">비밀번호</label>
+        <input id="lecturePasswordInput" type="password" placeholder="public 비밀번호 입력" autocomplete="current-password" />
+        <div class="dash-actions" style="margin-top: 12px;">
+          <button class="btn btn-primary" type="submit" id="lectureGateSubmit">Public 시작하기</button>
+          <button class="btn btn-ghost" type="button" id="cancelLectureAccess">닫기</button>
+        </div>
+      </form>
+      <p class="small" id="lecturePasswordMessage" style="margin-top: 12px;">public 비밀번호를 입력하거나 창을 닫고 public mode 페이지로 이동할 수 있습니다.</p>
+    </div>
+  </div>
+
+  <div class="password-gate-overlay" id="publicMessagePopup" hidden>
+    <div class="password-gate" role="dialog" aria-modal="true" aria-labelledby="publicMessageTitle">
+      <div class="section-kicker">Lecture Message</div>
+      <h2 id="publicMessageTitle">강연 메시지 도착</h2>
+      <p id="publicMessageText" class="small">새 메시지가 도착하면 여기에 표시됩니다.</p>
+      <div class="dash-actions" style="margin-top: 12px;">
+        <button class="btn btn-primary" type="button" id="closePublicMessagePopup">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-card">
+          <div class="badge">학생 중심 실습 페이지 · Mobile Input / PC Board</div>
+          <h1>만들기 전에 먼저,<br />사람의 행동을 확인하십시오.</h1>
+          <p class="lecture-only">
+            이 페이지는 학생 팀이 <strong>프리토타입 실험</strong>을 빠르게 운영하도록 정리한 단일 보드입니다.
+            입력은 <strong>Tally 또는 Google Form</strong>으로 바꾸고, 발표 PC는 <strong>외부 JSON 또는 Google Sheets 응답</strong>만 읽어 실시간 보드를 구성할 수 있습니다.
+          </p>
+          <p class="public-only">
+            이 화면은 학생/외부 참가자용 <strong>최소 입력 랜딩</strong>입니다. 아래 안내를 보고 링크를 열거나 바로 폼을 제출하면 됩니다.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#live">지금 참여하기</a>
+            <a class="btn btn-secondary lecture-only" href="#compare">Prototype vs Pretotype</a>
+            <a class="btn btn-secondary public-only" href="#public-guide">참여 방법 보기</a>
+          </div>
+        </div>
+
+        <aside class="hero-card hero-mini lecture-only">
+          <div class="metric">
+            <div class="label">추천 운영 방식</div>
+            <div class="value">모바일 입력 + PC 발표</div>
+          </div>
+          <div class="metric">
+            <div class="label">지원 데이터 소스</div>
+            <div class="value">Demo / JSON / Sheets</div>
+          </div>
+          <div class="metric">
+            <div class="label">가장 중요한 지표</div>
+            <div class="value">클릭 · 신청 · 제출</div>
+          </div>
+          <div class="device-badges">
+            <span class="pill">학생 입력 링크</span>
+            <span class="pill">발표 보드 분리</span>
+            <span class="pill">테마 전환</span>
+          </div>
+          <p class="small">
+            완성도 높은 앱보다 중요한 것은 <strong>실제 행동 신호</strong>입니다. 이 보드는 아이디어를 설명하는 문서가 아니라,
+            학생 팀의 실험 결과를 바로 보여주는 운영 화면입니다.
+          </p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section anchor-offset lecture-only" id="why">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Why</div>
+          <h2>왜 학생 팀은 프로토타입보다 프리토타입부터 시작해야 하는가</h2>
+          <p>
+            수업이나 해커톤 초기에는 기능을 길게 만드는 것보다, <strong>정말 누가 반응하는지</strong>를 빨리 확인하는 편이 더 효율적입니다.
+            프리토타입은 아이디어를 “실제처럼 보이게” 만들어 보고, 사람들이 클릭하거나 제출하는지로 판단합니다.
+          </p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card principle">
+            <div class="principle-index">1</div>
+            <div>
+              <h3>작게 시작</h3>
+              <p>완성 앱 대신 랜딩, 폼, 간단한 CTA만으로도 수요 검증을 시작할 수 있습니다.</p>
+            </div>
+          </div>
+          <div class="card principle">
+            <div class="principle-index">2</div>
+            <div>
+              <h3>행동 측정</h3>
+              <p>좋아요나 칭찬보다 클릭, 신청, DM, 대기등록 같은 행동 데이터가 더 강한 신호입니다.</p>
+            </div>
+          </div>
+          <div class="card principle">
+            <div class="principle-index">3</div>
+            <div>
+              <h3>빠른 방향 수정</h3>
+              <p>반응이 약하면 바로 문구, 타깃, 제안을 수정할 수 있어 팀 시간이 덜 낭비됩니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section anchor-offset lecture-only" id="compare">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Compare</div>
+          <h2>프로토타입 vs 프리토타입</h2>
+          <p>
+            두 방식은 비슷해 보이지만 목표가 다릅니다. <strong>Prototype</strong>은 기능과 사용성을 검증하고,
+            <strong>Pretotype</strong>은 사람들이 애초에 관심을 보이고 움직이는지 검증합니다.
+          </p>
+        </div>
+
+        <div class="compare">
+          <table>
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th>프로토타입</th>
+                <th>프리토타입</th>
+                <th>학생 실습 관점</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>목적</td>
+                <td>기능/화면 사용성 검증</td>
+                <td>수요와 행동 의사 검증</td>
+                <td class="good">초기에는 프리토타입이 더 빠름</td>
+              </tr>
+              <tr>
+                <td>필요 자원</td>
+                <td>디자인/개발 시간이 많이 듦</td>
+                <td>랜딩 + 폼 + 메시지면 시작 가능</td>
+                <td class="good">짧은 수업/해커톤에 적합</td>
+              </tr>
+              <tr>
+                <td>주요 지표</td>
+                <td>화면 완성도, 플로우 사용성</td>
+                <td>클릭, 신청, 예약, 대기등록</td>
+                <td class="good">행동 데이터 확보에 유리</td>
+              </tr>
+              <tr>
+                <td>실패 비용</td>
+                <td class="bad">상대적으로 큼</td>
+                <td class="good">작고 빠르게 학습 가능</td>
+                <td class="warn">초기 방향 탐색에 적합</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section anchor-offset lecture-only" id="flow">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Student Flow</div>
+          <h2>학생 실습 흐름은 이렇게 단순해야 합니다</h2>
+          <p>
+            학생 팀은 보통 많은 기능을 넣으려다 시간을 잃습니다. 아래 흐름처럼 <strong>타깃 → CTA → 입력 수집 → 발표 보드</strong> 순서로 짧게 끊으십시오.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>실습 순서</h3>
+            <div class="step-list">
+              <div class="step"><div class="principle-index">1</div><div><strong>문제와 타깃 정리</strong><span>누가 어떤 불편을 느끼는지 한 문장으로 정리합니다.</span></div></div>
+              <div class="step"><div class="principle-index">2</div><div><strong>CTA 결정</strong><span>신청하기, 대기등록, 예약하기 등 행동 문구를 먼저 만듭니다.</span></div></div>
+              <div class="step"><div class="principle-index">3</div><div><strong>폼 연결</strong><span>Tally 또는 Google Form으로 학생 입력 경로를 만듭니다.</span></div></div>
+              <div class="step"><div class="principle-index">4</div><div><strong>보드 발표</strong><span>PC 보드는 외부 응답을 읽어 팀별 결과를 보여줍니다.</span></div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>이 페이지가 제공하는 기반</h3>
+            <ul class="list">
+              <li><span class="good">Demo mode</span>로 수업 전 리허설 가능</li>
+              <li><span class="good">Live mode</span>로 실제 외부 응답 연결 가능</li>
+              <li><span class="good">adapter 계층</span>으로 JSON / Google Sheets 교체 가능</li>
+              <li><span class="good">학생 중심 문구</span>로 실습 안내에 바로 사용 가능</li>
+            </ul>
+            <div style="margin-top: 14px;" class="notice">
+              핵심은 예쁜 화면보다 <strong>같은 구조를 여러 팀이 반복해서 빠르게 실험</strong>할 수 있게 만드는 것입니다.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section anchor-offset public-only" id="public-guide">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Public Guide</div>
+          <h2>참여자는 이 세 가지만 하면 됩니다</h2>
+          <p>public landing mode에서는 설명보다 행동이 먼저입니다. 아래 순서대로 링크를 열고 제출하면 참여가 끝납니다.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <h3>1. 링크 열기</h3>
+            <p>폼 링크 또는 QR을 열어 현재 실험/강연에 참여합니다.</p>
+          </div>
+          <div class="card">
+            <h3>2. 정보 입력</h3>
+            <p>팀 이름, 아이템, 타깃, CTA 등 핵심 정보만 빠르게 작성합니다.</p>
+          </div>
+          <div class="card">
+            <h3>3. 제출 완료</h3>
+            <p>제출이 끝나면 발표 보드 또는 후속 안내를 기다리면 됩니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section lecture-only" id="lecture-script">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Lecture Script</div>
+          <h2>강연 진행용 핵심 스크립트</h2>
+          <p>이 블록은 `lecture mode`에서만 표시됩니다. 발표자는 아래 문장을 바탕으로 흐름을 짧게 이어가면 됩니다.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <h3>오프닝</h3>
+            <p>“오늘 목표는 완성품을 만드는 것이 아니라, 사람들이 정말 움직이는지 확인하는 것입니다.”</p>
+          </div>
+          <div class="card">
+            <h3>중간 안내</h3>
+            <p>“설명보다 CTA를 먼저 정하십시오. 지금 무엇을 누르게 만들지부터 결정하는 것이 핵심입니다.”</p>
+          </div>
+          <div class="card">
+            <h3>마무리 질문</h3>
+            <p>“이제 중요한 것은 하나입니다. 실제로 클릭했고, 제출했고, 반응이 있었습니까?”</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section anchor-offset" id="live">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Live Board</div>
+          <h2>실제 운영 가능한 보드 구조</h2>
+          <p>
+            입력 링크와 발표 보드를 분리했습니다. 모바일에서는 <strong>Tally / Google Form</strong>을 열고,
+            PC 발표 화면에서는 <strong>JSON · Google Sheets · Supabase 응답</strong>을 읽어 팀별 결과를 렌더링합니다.
+          </p>
+        </div>
+
+        <div class="tool-grid">
+          <div class="tool-card lecture-only">
+            <h3>1) 운영 모드와 데이터 소스 설정</h3>
+            <p class="small">`Demo`는 localStorage 리허설용, `Live`는 외부 응답 연동용입니다.</p>
+
+            <div class="mode-toggle" role="tablist" aria-label="보드 모드 토글">
+              <button class="mode-pill is-active" type="button" data-mode-btn="demo">Local Demo</button>
+              <button class="mode-pill" type="button" data-mode-btn="live">Live Mode</button>
+            </div>
+
+            <div class="form-grid" style="margin-top: 16px;">
+              <div class="field-full">
+                <label for="dataSourceType">발표 보드 데이터 소스</label>
+                <select id="dataSourceType">
+                  <option value="demo">Demo (localStorage)</option>
+                  <option value="json">External JSON</option>
+                  <option value="googleSheets">Google Sheets</option>
+                  <option value="supabase">Supabase Table</option>
+                </select>
+              </div>
+              <div class="field-full">
+                <label for="dataSourceUrl">응답 URL 또는 Supabase Project URL</label>
+                <input id="dataSourceUrl" type="url" placeholder="https://example.com/board.json · published Google Sheets URL · https://xxxx.supabase.co" />
+              </div>
+              <div class="field-full">
+                <label for="supabaseKey">Supabase anon key</label>
+                <input id="supabaseKey" type="password" placeholder="eyJhbGciOi... (public anon key만 사용)" />
+              </div>
+              <div class="field-full">
+                <label for="supabaseTable">Supabase table name</label>
+                <input id="supabaseTable" type="text" placeholder="pretotype_board_entries" />
+              </div>
+              <div class="field-full">
+                <label for="formUrl">학생 입력 링크 (Tally / Google Form)</label>
+                <input id="formUrl" type="url" placeholder="https://tally.so/r/... 또는 https://forms.gle/..." />
+              </div>
+            </div>
+
+            <p class="small" style="margin-top: 12px;">`Supabase Table`을 선택하면 프로젝트 URL, `anon public key`, 테이블 이름을 입력해 여러 기기에서 같은 보드를 읽을 수 있습니다.</p>
+            </div>
+
+            <div class="dash-actions" style="margin-top: 14px;">
+              <button class="btn btn-primary" type="button" id="applySourceConfig">연결 적용</button>
+              <button class="btn btn-secondary" type="button" id="refreshBoard">보드 새로고침</button>
+            </div>
+
+            <div id="boardStatus" class="status-line" data-tone="loading">보드 상태를 불러오는 중입니다...</div>
+            <p id="syncMeta" class="small" style="margin-top: 10px;">마지막 동기화: 대기 중</p>
+          </div>
+
+          <div class="tool-card">
+            <h3>2) QR / 링크 공유</h3>
+            <p class="small">배포 URL이 감지되면 발표 보드 QR이 자동으로 만들어집니다. 학생 입력용 폼 QR은 별도 폼 링크를 넣었을 때만 활성화됩니다.</p>
+
+            <div class="resource-tags">
+              <span class="pill">폼 QR</span>
+              <span class="pill">발표 보드 QR</span>
+              <span class="pill">모바일 링크 복사</span>
+            </div>
+
+            <div class="qr-panels">
+              <section class="qr-panel" aria-label="학생 입력 폼 QR">
+                <div>
+                  <div class="subhead">Form QR</div>
+                  <p class="qr-caption">Tally / Google Form 링크를 학생에게 바로 공유할 수 있습니다.</p>
+                </div>
+                <div class="qr-box">
+                  <img id="formQrImage" alt="입력 폼 QR" />
+                </div>
+                <div class="qr-actions">
+                  <a class="btn btn-secondary" id="openFormLink" href="#" target="_blank" rel="noopener">입력 링크 미설정</a>
+                  <button class="btn btn-ghost" type="button" id="copyFormLink">폼 링크 복사</button>
+                </div>
+              </section>
+
+              <section class="qr-panel lecture-only" aria-label="발표 보드 QR">
+                <div>
+                  <div class="subhead">Board QR</div>
+                  <p class="qr-caption">현재 배포 URL이 있으면 자동 감지하여 발표 보드 QR을 생성합니다.</p>
+                </div>
+                <div class="qr-box">
+                  <img id="boardQrImage" alt="발표 보드 QR" />
+                </div>
+                <div class="qr-actions">
+                  <a class="btn btn-secondary" id="openBoardLink" href="#" target="_blank" rel="noopener">발표 보드 URL 미감지</a>
+                  <button class="btn btn-ghost" type="button" id="copyBoardLink">보드 링크 복사</button>
+                </div>
+              </section>
+            </div>
+
+            <p class="small" style="margin-top: 12px;">
+              모바일에서는 QR을 찍지 않아도 <strong>복사 버튼</strong>으로 링크를 바로 전달할 수 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <div class="tool-grid" style="margin-top: 18px;">
+          <div class="tool-card public-only">
+            <h3>참가자 질문 보내기</h3>
+            <p class="small">public mode에서 질문을 보내면 lecture mode 화면에서 바로 보고 답변할 수 있습니다.</p>
+            <form id="publicQuestionForm" class="field-full">
+              <label for="publicQuestionInput">질문 내용</label>
+              <textarea id="publicQuestionInput" placeholder="예: CTA 문구를 어떻게 정해야 하나요?"></textarea>
+              <div class="dash-actions" style="margin-top: 12px;">
+                <button class="btn btn-primary" type="submit">질문 보내기</button>
+              </div>
+            </form>
+            <div id="publicAnswerList" class="message-stack"></div>
+          </div>
+
+          <div class="tool-card lecture-only">
+            <h3>참가자 질문함 / 답변하기</h3>
+            <p class="small">public mode에서 올라온 질문을 확인하고 답변하면, 해당 답변이 public mode에 바로 반영됩니다.</p>
+            <div id="lectureQuestionList" class="message-stack"></div>
+          </div>
+        </div>
+
+        <div class="tool-grid" style="margin-top: 18px;">
+          <div class="tool-card demo-only" id="demoInputPanel">
+            <h3>Demo 입력 폼</h3>
+            <p class="small">외부 폼을 붙이기 전, 로컬 데모로만 빠르게 흐름을 점검할 수 있습니다.</p>
+
+            <form id="teamForm" class="form-grid">
+              <div class="field">
+                <label for="teamName">팀 이름</label>
+                <input id="teamName" name="teamName" type="text" placeholder="예: 1팀 / 2팀" required />
+              </div>
+              <div class="field">
+                <label for="teamItem">아이템</label>
+                <input id="teamItem" name="teamItem" type="text" placeholder="예: 대학생 멘토 매칭" required />
+              </div>
+              <div class="field">
+                <label for="teamTarget">타깃 고객</label>
+                <input id="teamTarget" name="teamTarget" type="text" placeholder="예: 새내기 대학생" required />
+              </div>
+              <div class="field">
+                <label for="teamCTA">핵심 CTA</label>
+                <input id="teamCTA" name="teamCTA" type="text" placeholder="예: 첫 멘토링 신청하기" required />
+              </div>
+              <div class="field-full">
+                <label for="teamProblem">해결하려는 문제</label>
+                <textarea id="teamProblem" name="teamProblem" placeholder="예: 전공/진로 정보를 빠르게 얻기 어려움"></textarea>
+              </div>
+              <div class="field-full">
+                <label for="teamBudget">예산/보유 자원 활용 계획</label>
+                <textarea id="teamBudget" name="teamBudget" placeholder="예: 광고 2만 원 + 학내 커뮤니티 + 기존 SNS 활용"></textarea>
+              </div>
+              <div class="field-full">
+                <label for="teamLinks">폼/랜딩 링크</label>
+                <input id="teamLinks" name="teamLinks" type="url" placeholder="https://example.com" />
+              </div>
+              <div class="field-full dash-actions">
+                <button class="btn btn-primary" type="submit">보드에 반영하기</button>
+                <button class="btn btn-secondary" type="button" id="loadSamples">예시 2개 불러오기</button>
+                <button class="btn btn-ghost" type="button" id="clearBoard">보드 초기화</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="tool-card lecture-only">
+            <h3>3) adapter 계층 설명</h3>
+            <ul class="list">
+              <li><span class="inline-code">DemoAdapter</span> · localStorage 기반 리허설 데이터</li>
+              <li><span class="inline-code">JsonAdapter</span> · 외부 JSON 응답을 읽어 표준 필드로 정규화</li>
+              <li><span class="inline-code">GoogleSheetsAdapter</span> · published Sheets / API 응답을 읽어 렌더링</li>
+              <li><span class="inline-code">mode toggle</span> · 로컬 데모와 실제 운영 화면을 같은 페이지에서 전환</li>
+            </ul>
+            <p class="small">필드 이름은 `teamName`, `teamItem`, `teamTarget`, `teamCTA`, `teamProblem`, `teamBudget`, `teamLinks` 기준으로 정규화됩니다.</p>
+          </div>
+        </div>
+
+        <div class="tool-card lecture-only" style="margin-top: 18px;">
+          <h3>Public Mode로 질문/안내 보내기</h3>
+          <p class="small">여기서 작성한 메시지는 public mode 화면에 팝업으로 전달됩니다.</p>
+          <form id="lectureBroadcastForm" class="field-full">
+            <label for="lectureBroadcastInput">전달할 메시지</label>
+            <textarea id="lectureBroadcastInput" placeholder="예: 지금부터 1분 안에 팀별 CTA를 입력해 주세요."></textarea>
+            <div class="dash-actions" style="margin-top: 12px;">
+              <button class="btn btn-primary" type="submit">Public에 팝업 보내기</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel lecture-only" style="padding: 24px; margin-top: 18px;">
+          <div class="dashboard-head">
+            <div>
+              <h3>발표 보드</h3>
+              <p class="small">학생 팀 결과가 누적되는 발표용 뷰</p>
+            </div>
+            <div class="dash-actions">
+              <span class="pill">실험 보드</span>
+              <span class="pill">학생 결과 집계</span>
+              <span class="pill">외부 응답 연동</span>
+            </div>
+          </div>
+
+          <div class="dashboard-metrics">
+            <div class="metric-box">
+              <div class="k">등록 팀 수</div>
+              <div class="v" id="metricTeams">0</div>
+            </div>
+            <div class="metric-box">
+              <div class="k">CTA 입력 수</div>
+              <div class="v" id="metricCtas">0</div>
+            </div>
+            <div class="metric-box">
+              <div class="k">링크 입력 수</div>
+              <div class="v" id="metricLinks">0</div>
+            </div>
+            <div class="metric-box">
+              <div class="k">자원 계획 입력 수</div>
+              <div class="v" id="metricResources">0</div>
+            </div>
+          </div>
+
+          <div id="teamBoard" class="team-grid"></div>
+          <div id="emptyState" class="empty-state">아직 표시할 팀이 없습니다. Demo mode에서 입력하거나 Live mode에서 외부 응답을 연결하십시오.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section anchor-offset lecture-only" id="tools">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Integration Guide</div>
+          <h2>Tally / Google Form / JSON / Google Sheets 연결 가이드</h2>
+          <p>
+            운영 시 학생들은 외부 폼만 사용하고, 발표 화면은 데이터 응답만 읽어오면 됩니다. 이 페이지는 그 경계를 나누어 두었습니다.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="tool-card">
+            <h3>Tally 또는 Google Form 연결</h3>
+            <div class="step-list">
+              <div class="step"><div class="principle-index">1</div><div><strong>질문 필드 맞추기</strong><span>팀 이름, 아이템, 타깃, CTA, 문제, 자원, 링크 순으로 폼을 구성합니다.</span></div></div>
+              <div class="step"><div class="principle-index">2</div><div><strong>응답 저장 위치 결정</strong><span>Tally Webhook/Notion/시트 또는 Google Form → Sheets 중 하나를 택합니다.</span></div></div>
+              <div class="step"><div class="principle-index">3</div><div><strong>보드에 URL 입력</strong><span>학생 입력 링크는 `formUrl`, 발표 데이터 응답 URL은 `dataSourceUrl`에 넣습니다.</span></div></div>
+            </div>
+          </div>
+
+          <div class="tool-card">
+            <h3>외부 JSON 예시</h3>
+            <pre class="code-block">[
+  {
+    "teamName": "1팀",
+    "teamItem": "대학생 멘토 매칭",
+    "teamTarget": "새내기 대학생",
+    "teamCTA": "첫 멘토링 신청하기",
+    "teamProblem": "전공/진로 정보를 얻기 어려움",
+    "teamBudget": "광고 2만 원 + 학내 커뮤니티",
+    "teamLinks": "https://example.com/mentoring"
+  }
+]</pre>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 18px;">
+          <div class="tool-card">
+            <h3>Google Sheets 사용 시 권장 헤더</h3>
+            <ul class="list">
+              <li><span class="inline-code">teamName</span></li>
+              <li><span class="inline-code">teamItem</span></li>
+              <li><span class="inline-code">teamTarget</span></li>
+              <li><span class="inline-code">teamCTA</span></li>
+              <li><span class="inline-code">teamProblem</span></li>
+              <li><span class="inline-code">teamBudget</span></li>
+              <li><span class="inline-code">teamLinks</span></li>
+            </ul>
+            <p class="small">헤더가 정확할수록 정규화가 덜 필요하고, 발표 보드 오류 가능성도 줄어듭니다.</p>
+          </div>
+
+          <div class="tool-card">
+            <h3>학생이 기억해야 할 질문</h3>
+            <ul class="list">
+              <li>누가 이 문제를 실제로 겪고 있는가?</li>
+              <li>어떤 CTA를 누르게 만들 것인가?</li>
+              <li>제출 이후 무엇을 할 것인가?</li>
+              <li>반응이 없으면 어떤 문구를 바꿀 것인가?</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section anchor-offset public-only" id="basics">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="section-kicker">Basics</div>
+          <h2>CTA와 랜딩페이지는 무엇인가</h2>
+          <p>
+            학생 팀이 가장 자주 헷갈리는 두 개념입니다. <strong>CTA</strong>는 사람에게 지금 무엇을 하라고 요청하는 문구이고,
+            <strong>랜딩페이지</strong>는 그 행동이 일어나도록 설계한 한 장의 설득 페이지입니다.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>CTA란?</h3>
+            <p>
+              CTA는 <strong>Call To Action</strong>의 줄임말입니다. 사용자가 페이지를 보고 난 뒤 실제로 취해야 할 다음 행동을 명확히 제시하는 문구입니다.
+            </p>
+            <ul class="list">
+              <li><span class="good">좋은 CTA</span> · “지금 신청하기”, “대기 등록하기”, “무료 체험 시작하기”</li>
+              <li><span class="bad">약한 CTA</span> · “한번 보세요”, “관심 있나요?”, “더 알아보기”</li>
+              <li>한 페이지에는 보통 <strong>핵심 CTA 1개</strong>를 중심으로 두는 편이 좋습니다.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>랜딩페이지란?</h3>
+            <p>
+              랜딩페이지는 광고, 링크, QR을 통해 들어온 사람이 <strong>짧은 시간 안에 이해하고 행동</strong>하도록 만든 집중형 페이지입니다.
+              예쁜 소개문보다 “누구를 위한 것인지, 왜 필요한지, 지금 무엇을 해야 하는지”가 더 중요합니다.
+            </p>
+            <ul class="list">
+              <li>타깃이 누구인지 한 줄로 보이기</li>
+              <li>문제와 해결 방식을 빠르게 설명하기</li>
+              <li>신뢰 요소 또는 예시를 짧게 덧붙이기</li>
+              <li>CTA 버튼을 실제 링크/폼과 연결하기</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top: 18px;">
+          <div class="tool-card">
+            <h3>학생 팀이 자주 하는 실수</h3>
+            <ul class="list">
+              <li>CTA가 너무 많아 무엇을 눌러야 할지 모호함</li>
+              <li>랜딩페이지가 설명만 많고 행동 버튼이 약함</li>
+              <li>모바일에서 첫 화면만 보고도 이해되지 않음</li>
+              <li>버튼은 있지만 실제 폼이나 신청 링크가 연결되지 않음</li>
+            </ul>
+          </div>
+
+          <div class="tool-card">
+            <h3>이 페이지에서 바로 점검할 것</h3>
+            <ul class="list">
+              <li>학생 입력 링크가 실제 `Tally` 또는 `Google Form`으로 열리는가</li>
+              <li>발표 보드가 `JSON` 또는 `Google Sheets` 응답을 읽는가</li>
+              <li>QR 없이도 모바일에서 링크 복사가 되는가</li>
+              <li>GitHub 업로드 후 Vercel 배포 URL에서 그대로 열리는가</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="cta-band">
+          <div>
+            <h3>학생 팀이 마지막에 답해야 할 질문은 하나입니다.</h3>
+            <p>“사람들이 실제로 클릭하고 제출했는가?” 이 질문에 답할 수 있으면, 이미 첫 검증은 시작된 것입니다.</p>
+          </div>
+          <div class="hero-actions" style="margin-top: 0;">
+            <a class="btn btn-primary" href="#live">보드 설정 열기</a>
+            <a class="btn btn-secondary" href="#tools">연결 가이드 보기</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab theme-fab" id="themeToggle" type="button" aria-label="화이트 테마로 전환">☀</button>
+  <a class="fab insta-fab" href="https://www.instagram.com/sonsmos/" target="_blank" rel="noopener noreferrer" aria-label="인스타그램 DM 보내기">◎</a>
+
+  <footer class="footer">
+    <div class="wrap">
+      <p><strong>Pretotype Sprint Board</strong> · 학생 실습용 단일 페이지 · Demo/Live 운영 지원</p>
+      <p class="small">실제 운영 시에는 CORS 허용된 JSON, 공개 Google Sheets, 또는 webhook으로 만든 응답 엔드포인트를 연결하면 됩니다.</p>
+    </div>
+  </footer>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
