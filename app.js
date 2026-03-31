@@ -112,6 +112,7 @@
   let refreshTimer = null;
   let communicationTimer = null;
   let visitRegistered = false;
+  let announcementTimer = null;
 
   function escapeHtml(value = '') {
     return String(value).replace(/[&<>"']/g, (char) => ({
@@ -418,6 +419,8 @@
       id: String(row.id || ''),
       text: String(row.text || row.question || ''),
       answer: String(row.answer || ''),
+      isPublic: row.is_public ?? row.isPublic ?? true,
+      authorId: String(row.author_id || row.authorId || ''),
       createdAt: row.created_at || row.createdAt || '',
       answeredAt: row.answered_at || row.answeredAt || ''
     };
@@ -470,7 +473,7 @@
       return payload.map(normalizeQuestionRow).filter((q) => q.id && q.text);
     }
 
-    async create(text) {
+    async create({ text, isPublic = true, authorId = '' } = {}) {
       if (!this.url) {
         throw new Error('Supabase 프로젝트 URL이 비어 있습니다.');
       }
@@ -483,6 +486,8 @@
         id: createMessageId('question'),
         text: String(text || '').trim(),
         answer: '',
+        is_public: Boolean(isPublic),
+        author_id: String(authorId || '').trim() || null,
         created_at: new Date().toISOString()
       };
       const response = await fetch(endpoint, {
@@ -1104,6 +1109,11 @@
   }
 
   function hidePublicAnnouncement() {
+    if (announcementTimer) {
+      window.clearTimeout(announcementTimer);
+      announcementTimer = null;
+    }
+
     if (els.publicMessagePopup) {
       els.publicMessagePopup.hidden = true;
     }
@@ -1130,15 +1140,22 @@
 
     els.publicMessageText.textContent = announcement.text || '새 메시지가 도착했습니다.';
     els.publicMessagePopup.hidden = false;
+    if (announcementTimer) {
+      window.clearTimeout(announcementTimer);
+    }
+    announcementTimer = window.setTimeout(() => {
+      hidePublicAnnouncement();
+    }, 3000);
   }
 
   function renderCommunication() {
     const communication = state.communication || { questions: [], lectureAnnouncement: null };
     const questions = communication.questions || [];
+    const publicQuestions = questions.filter((question) => question?.isPublic !== false);
 
     if (els.publicAnswerList) {
-      els.publicAnswerList.innerHTML = questions.length
-        ? questions.map((question) => `
+      els.publicAnswerList.innerHTML = publicQuestions.length
+        ? publicQuestions.map((question) => `
             <article class="message-item">
               <strong>질문</strong>
               <p>${escapeHtml(question.text || '')}</p>
@@ -1146,7 +1163,7 @@
               <p class="small"><strong>답변</strong> · ${escapeHtml(question.answer || '아직 답변 대기 중입니다.')}</p>
             </article>
           `).join('')
-        : '<div class="message-item"><p class="small">아직 보낸 질문이 없습니다.</p></div>';
+        : '<div class="message-item"><p class="small">아직 공개 질문이 없습니다.</p></div>';
     }
 
     if (els.lectureQuestionList) {
@@ -1154,6 +1171,7 @@
         ? questions.map((question) => `
             <article class="message-item" data-question-id="${escapeHtml(question.id)}">
               <strong>${escapeHtml(question.text || '')}</strong>
+              <p class="small">공개 설정 · ${question.isPublic === false ? '비공개' : '공개'}</p>
               <p class="small">질문 시각 · ${escapeHtml(formatDisplayTime(question.createdAt))}</p>
               <p class="small">현재 답변 · ${escapeHtml(question.answer || '아직 답변 전')}</p>
               <div class="field-full" style="margin-top: 12px;">
@@ -1533,13 +1551,21 @@
       return;
     }
 
+    const formData = new FormData(els.publicQuestionForm);
+    const visibility = String(formData.get('questionVisibility') || 'public');
+    const isPublic = visibility !== 'private';
+
     if (isSupabaseConfigured()) {
       try {
         const adapter = createQuestionsAdapter();
-        await adapter.create(text);
+        await adapter.create({
+          text,
+          isPublic,
+          authorId: getOrCreateVisitorId()
+        });
         await syncCommunication();
         els.publicQuestionForm?.reset();
-        setPublicStatus('질문이 lecture mode로 전달되었습니다.', 'ok');
+        setPublicStatus(isPublic ? '질문이 공개 목록에 등록되었습니다.' : '비공개 질문이 강사에게 전달되었습니다.', 'ok');
       } catch (error) {
         setPublicStatus(error.message || '질문 전송에 실패했습니다.', 'error');
       }
@@ -1553,6 +1579,8 @@
           id: createMessageId('question'),
           text,
           answer: '',
+          isPublic,
+          authorId: getOrCreateVisitorId(),
           createdAt: new Date().toISOString()
         },
         ...(state.communication?.questions || [])
