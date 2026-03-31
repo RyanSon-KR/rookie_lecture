@@ -8,6 +8,8 @@
   const PUBLIC_PASSWORD = '0330';
   const LECTURE_PASSWORD = '990323';
   const REFRESH_INTERVAL_MS = 30000;
+  const SUPABASE_LIVE_REFRESH_INTERVAL_MS = 5000;
+  const COMMUNICATION_REFRESH_INTERVAL_MS = 2500;
 
   const SAMPLE_TEAMS = [
     {
@@ -37,6 +39,7 @@
   const els = {
     body: document.body,
     teamForm: $('#teamForm'),
+    publicTeamForm: $('#publicTeamForm'),
     teamBoard: $('#teamBoard'),
     emptyState: $('#emptyState'),
     loadSamples: $('#loadSamples'),
@@ -50,6 +53,8 @@
     formUrl: $('#formUrl'),
     supabaseKey: $('#supabaseKey'),
     supabaseTable: $('#supabaseTable'),
+    supabaseQuestionsTable: $('#supabaseQuestionsTable'),
+    supabaseAnnouncementsTable: $('#supabaseAnnouncementsTable'),
     applySourceConfig: $('#applySourceConfig'),
     refreshBoard: $('#refreshBoard'),
     boardStatus: $('#boardStatus'),
@@ -64,6 +69,7 @@
     publicQuestionForm: $('#publicQuestionForm'),
     publicQuestionInput: $('#publicQuestionInput'),
     publicAnswerList: $('#publicAnswerList'),
+    publicStatus: $('#publicStatus'),
     lectureQuestionList: $('#lectureQuestionList'),
     lectureBroadcastForm: $('#lectureBroadcastForm'),
     lectureBroadcastInput: $('#lectureBroadcastInput'),
@@ -94,11 +100,14 @@
     formUrl: '',
     supabaseKey: '',
     supabaseTable: 'pretotype_board_entries',
+    supabaseQuestionsTable: 'pretotype_questions',
+    supabaseAnnouncementsTable: 'pretotype_announcements',
     theme: 'dark',
     pageView: 'public'
   };
 
   let refreshTimer = null;
+  let communicationTimer = null;
 
   function escapeHtml(value = '') {
     return String(value).replace(/[&<>"']/g, (char) => ({
@@ -151,6 +160,8 @@
     if (params.get('form')) overrides.formUrl = params.get('form');
     if (params.get('sbkey')) overrides.supabaseKey = params.get('sbkey');
     if (params.get('sbtable')) overrides.supabaseTable = params.get('sbtable');
+    if (params.get('sbqtable')) overrides.supabaseQuestionsTable = params.get('sbqtable');
+    if (params.get('sbatable')) overrides.supabaseAnnouncementsTable = params.get('sbatable');
     if (params.get('theme')) overrides.theme = params.get('theme');
     if (params.get('view')) overrides.pageView = params.get('view');
 
@@ -288,6 +299,23 @@
     return `${cleanUrl}/rest/v1/${safeTable}?select=*`;
   }
 
+  function buildSupabaseRestUrl(url, table, query = {}) {
+    const base = buildSupabaseTableUrl(url, table);
+    if (!base) {
+      return '';
+    }
+
+    const parsed = new URL(base);
+    Object.entries(query).forEach(([key, value]) => {
+      if (value === undefined || value === null || String(value).trim() === '') {
+        parsed.searchParams.delete(key);
+      } else {
+        parsed.searchParams.set(key, String(value));
+      }
+    });
+    return parsed.toString();
+  }
+
   class SupabaseAdapter {
     constructor(url, anonKey, table = 'pretotype_board_entries') {
       this.url = normalizeUrl(url);
@@ -362,6 +390,197 @@
         throw new Error(`Supabase 저장 실패 (${response.status}) ${detail.slice(0, 120)}`.trim());
       }
 
+      return response.json();
+    }
+  }
+
+  function normalizeQuestionRow(row = {}) {
+    return {
+      id: String(row.id || ''),
+      text: String(row.text || row.question || ''),
+      answer: String(row.answer || ''),
+      createdAt: row.created_at || row.createdAt || '',
+      answeredAt: row.answered_at || row.answeredAt || ''
+    };
+  }
+
+  function normalizeAnnouncementRow(row = {}) {
+    return {
+      id: String(row.id || ''),
+      text: String(row.text || ''),
+      createdAt: row.created_at || row.createdAt || ''
+    };
+  }
+
+  class SupabaseQuestionsAdapter {
+    constructor(url, anonKey, table = 'pretotype_questions') {
+      this.url = normalizeUrl(url);
+      this.anonKey = String(anonKey || '').trim();
+      this.table = String(table || 'pretotype_questions').trim() || 'pretotype_questions';
+    }
+
+    get headers() {
+      return {
+        apikey: this.anonKey,
+        Authorization: `Bearer ${this.anonKey}`
+      };
+    }
+
+    async fetch({ limit = 50 } = {}) {
+      if (!this.url) {
+        throw new Error('Supabase 프로젝트 URL이 비어 있습니다.');
+      }
+      if (!this.anonKey) {
+        throw new Error('Supabase anon key를 입력하십시오.');
+      }
+
+      const endpoint = buildSupabaseRestUrl(this.url, this.table, {
+        order: 'created_at.desc',
+        limit: String(limit)
+      });
+      const response = await fetch(endpoint, { cache: 'no-store', headers: this.headers });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`질문 목록 조회 실패 (${response.status}) ${detail.slice(0, 120)}`.trim());
+      }
+
+      const payload = await response.json();
+      if (!Array.isArray(payload)) {
+        return [];
+      }
+      return payload.map(normalizeQuestionRow).filter((q) => q.id && q.text);
+    }
+
+    async create(text) {
+      if (!this.url) {
+        throw new Error('Supabase 프로젝트 URL이 비어 있습니다.');
+      }
+      if (!this.anonKey) {
+        throw new Error('Supabase anon key를 입력하십시오.');
+      }
+
+      const endpoint = buildSupabaseTableUrl(this.url, this.table).replace(/\?select=\*$/, '');
+      const record = {
+        id: createMessageId('question'),
+        text: String(text || '').trim(),
+        answer: '',
+        created_at: new Date().toISOString()
+      };
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          ...this.headers,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: JSON.stringify([record])
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`질문 저장 실패 (${response.status}) ${detail.slice(0, 120)}`.trim());
+      }
+      return response.json();
+    }
+
+    async answer(id, answer) {
+      if (!this.url) {
+        throw new Error('Supabase 프로젝트 URL이 비어 있습니다.');
+      }
+      if (!this.anonKey) {
+        throw new Error('Supabase anon key를 입력하십시오.');
+      }
+
+      const base = buildSupabaseTableUrl(this.url, this.table).replace(/\?select=\*$/, '');
+      const endpoint = `${base}?id=eq.${encodeURIComponent(String(id || '').trim())}`;
+      const payload = {
+        answer: String(answer || '').trim(),
+        answered_at: new Date().toISOString()
+      };
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          ...this.headers,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`답변 저장 실패 (${response.status}) ${detail.slice(0, 120)}`.trim());
+      }
+      return response.json();
+    }
+  }
+
+  class SupabaseAnnouncementsAdapter {
+    constructor(url, anonKey, table = 'pretotype_announcements') {
+      this.url = normalizeUrl(url);
+      this.anonKey = String(anonKey || '').trim();
+      this.table = String(table || 'pretotype_announcements').trim() || 'pretotype_announcements';
+    }
+
+    get headers() {
+      return {
+        apikey: this.anonKey,
+        Authorization: `Bearer ${this.anonKey}`
+      };
+    }
+
+    async fetchLatest() {
+      if (!this.url) {
+        throw new Error('Supabase 프로젝트 URL이 비어 있습니다.');
+      }
+      if (!this.anonKey) {
+        throw new Error('Supabase anon key를 입력하십시오.');
+      }
+
+      const endpoint = buildSupabaseRestUrl(this.url, this.table, {
+        order: 'created_at.desc',
+        limit: '1'
+      });
+      const response = await fetch(endpoint, { cache: 'no-store', headers: this.headers });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`공지 조회 실패 (${response.status}) ${detail.slice(0, 120)}`.trim());
+      }
+
+      const payload = await response.json();
+      const row = Array.isArray(payload) ? payload[0] : null;
+      if (!row) {
+        return null;
+      }
+      const normalized = normalizeAnnouncementRow(row);
+      return normalized.id ? normalized : null;
+    }
+
+    async create(text) {
+      if (!this.url) {
+        throw new Error('Supabase 프로젝트 URL이 비어 있습니다.');
+      }
+      if (!this.anonKey) {
+        throw new Error('Supabase anon key를 입력하십시오.');
+      }
+
+      const endpoint = buildSupabaseTableUrl(this.url, this.table).replace(/\?select=\*$/, '');
+      const record = {
+        id: createMessageId('announcement'),
+        text: String(text || '').trim(),
+        created_at: new Date().toISOString()
+      };
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          ...this.headers,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation'
+        },
+        body: JSON.stringify([record])
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`공지 저장 실패 (${response.status}) ${detail.slice(0, 120)}`.trim());
+      }
       return response.json();
     }
   }
@@ -465,6 +684,28 @@
     }
   }
 
+  function createQuestionsAdapter() {
+    return new SupabaseQuestionsAdapter(
+      state.settings.sourceUrl,
+      state.settings.supabaseKey,
+      state.settings.supabaseQuestionsTable
+    );
+  }
+
+  function createAnnouncementsAdapter() {
+    return new SupabaseAnnouncementsAdapter(
+      state.settings.sourceUrl,
+      state.settings.supabaseKey,
+      state.settings.supabaseAnnouncementsTable
+    );
+  }
+
+  function isSupabaseConfigured() {
+    return state.settings.sourceType === 'supabase'
+      && Boolean(normalizeUrl(state.settings.sourceUrl))
+      && Boolean(String(state.settings.supabaseKey || '').trim());
+  }
+
   function updateMetrics(teams) {
     els.metricTeams.textContent = String(teams.length);
     els.metricCtas.textContent = String(teams.filter((team) => team.teamCTA).length);
@@ -519,6 +760,15 @@
 
     els.boardStatus.dataset.tone = tone;
     els.boardStatus.textContent = message;
+  }
+
+  function setPublicStatus(message, tone = 'default') {
+    if (!els.publicStatus) {
+      return;
+    }
+
+    els.publicStatus.dataset.tone = tone;
+    els.publicStatus.textContent = message;
   }
 
   function updateSyncMeta(prefix = '마지막 동기화') {
@@ -750,7 +1000,7 @@
       els.publicAnswerList.innerHTML = questions.length
         ? questions.map((question) => `
             <article class="message-item">
-              <strong>내 질문</strong>
+              <strong>질문</strong>
               <p>${escapeHtml(question.text || '')}</p>
               <p class="small">질문 시각 · ${escapeHtml(formatDisplayTime(question.createdAt))}</p>
               <p class="small"><strong>답변</strong> · ${escapeHtml(question.answer || '아직 답변 대기 중입니다.')}</p>
@@ -873,6 +1123,8 @@
     if (els.formUrl) els.formUrl.value = state.settings.formUrl || '';
     if (els.supabaseKey) els.supabaseKey.value = state.settings.supabaseKey || '';
     if (els.supabaseTable) els.supabaseTable.value = state.settings.supabaseTable || 'pretotype_board_entries';
+    if (els.supabaseQuestionsTable) els.supabaseQuestionsTable.value = state.settings.supabaseQuestionsTable || 'pretotype_questions';
+    if (els.supabaseAnnouncementsTable) els.supabaseAnnouncementsTable.value = state.settings.supabaseAnnouncementsTable || 'pretotype_announcements';
     applyPageView(state.settings.pageView);
     updateModeUI();
     updateShareLinks();
@@ -907,7 +1159,47 @@
     }
 
     if (state.settings.mode === 'live' && state.settings.sourceType !== 'demo' && state.settings.sourceUrl) {
-      refreshTimer = window.setInterval(syncBoard, REFRESH_INTERVAL_MS);
+      const interval = state.settings.sourceType === 'supabase' ? SUPABASE_LIVE_REFRESH_INTERVAL_MS : REFRESH_INTERVAL_MS;
+      refreshTimer = window.setInterval(syncBoard, interval);
+    }
+  }
+
+  function manageCommunicationRefresh() {
+    if (communicationTimer) {
+      window.clearInterval(communicationTimer);
+      communicationTimer = null;
+    }
+
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+
+    communicationTimer = window.setInterval(syncCommunication, COMMUNICATION_REFRESH_INTERVAL_MS);
+  }
+
+  async function syncCommunication() {
+    if (!isSupabaseConfigured()) {
+      return;
+    }
+
+    try {
+      const questionsAdapter = createQuestionsAdapter();
+      const announcementsAdapter = createAnnouncementsAdapter();
+      const [questions, latestAnnouncement] = await Promise.all([
+        questionsAdapter.fetch({ limit: 60 }),
+        announcementsAdapter.fetchLatest()
+      ]);
+
+      state.communication = {
+        questions,
+        lectureAnnouncement: latestAnnouncement
+      };
+      renderCommunication();
+      maybeShowPublicAnnouncement();
+    } catch (error) {
+      if (els.publicStatus && state.settings.pageView === 'public') {
+        setPublicStatus(error.message || 'Supabase 통신에 실패했습니다.', 'error');
+      }
     }
   }
 
@@ -948,6 +1240,36 @@
     setStatus('Demo 데이터가 추가되었습니다.', 'ok');
     syncBoard();
     els.teamForm.querySelector('#teamName')?.focus();
+  }
+
+  async function handlePublicTeamSubmit(event) {
+    event.preventDefault();
+
+    if (!isSupabaseConfigured()) {
+      setPublicStatus('Supabase 연결 후에만 제출할 수 있습니다. (Lecture mode에서 source=supabase + url + anon key 설정)', 'error');
+      return;
+    }
+
+    const formData = new FormData(els.publicTeamForm);
+    const adapter = createAdapter();
+
+    try {
+      await adapter.save({
+        teamName: formData.get('teamName')?.toString().trim(),
+        teamItem: formData.get('teamItem')?.toString().trim(),
+        teamTarget: formData.get('teamTarget')?.toString().trim(),
+        teamCTA: formData.get('teamCTA')?.toString().trim(),
+        teamProblem: formData.get('teamProblem')?.toString().trim(),
+        teamBudget: formData.get('teamBudget')?.toString().trim(),
+        teamLinks: normalizeUrl(formData.get('teamLinks')?.toString().trim() || ''),
+        createdAt: new Date().toISOString()
+      });
+
+      els.publicTeamForm.reset();
+      setPublicStatus('제출이 완료되었습니다. 발표 보드에 반영됩니다.', 'ok');
+    } catch (error) {
+      setPublicStatus(error.message || '제출에 실패했습니다.', 'error');
+    }
   }
 
   async function seedDemoData() {
@@ -1014,10 +1336,14 @@
     state.settings.formUrl = normalizeUrl(els.formUrl.value);
     state.settings.supabaseKey = els.supabaseKey?.value?.trim() || '';
     state.settings.supabaseTable = els.supabaseTable?.value?.trim() || 'pretotype_board_entries';
+    state.settings.supabaseQuestionsTable = els.supabaseQuestionsTable?.value?.trim() || 'pretotype_questions';
+    state.settings.supabaseAnnouncementsTable = els.supabaseAnnouncementsTable?.value?.trim() || 'pretotype_announcements';
     saveSettings();
     updateShareLinks();
     manageAutoRefresh();
+    manageCommunicationRefresh();
     syncBoard();
+    syncCommunication();
   }
 
   async function copyTextToClipboard(text) {
@@ -1059,6 +1385,19 @@
       return;
     }
 
+    if (isSupabaseConfigured()) {
+      try {
+        const adapter = createQuestionsAdapter();
+        await adapter.create(text);
+        await syncCommunication();
+        els.publicQuestionForm?.reset();
+        setPublicStatus('질문이 lecture mode로 전달되었습니다.', 'ok');
+      } catch (error) {
+        setPublicStatus(error.message || '질문 전송에 실패했습니다.', 'error');
+      }
+      return;
+    }
+
     const nextCommunication = {
       ...state.communication,
       questions: [
@@ -1083,6 +1422,20 @@
     const text = els.lectureBroadcastInput?.value?.trim() || '';
     if (!text) {
       setStatus('보낼 메시지를 입력하십시오.', 'error');
+      return;
+    }
+
+    if (isSupabaseConfigured()) {
+      try {
+        const adapter = createAnnouncementsAdapter();
+        await adapter.create(text);
+        setAnnouncementSeen('');
+        await syncCommunication();
+        els.lectureBroadcastForm?.reset();
+        setStatus('Public mode에 팝업 메시지를 전달했습니다.', 'ok');
+      } catch (error) {
+        setStatus(error.message || '팝업 전송에 실패했습니다.', 'error');
+      }
       return;
     }
 
@@ -1114,6 +1467,18 @@
 
     if (!questionId || !answer) {
       setStatus('답변 내용을 입력하십시오.', 'error');
+      return;
+    }
+
+    if (isSupabaseConfigured()) {
+      const save = async () => {
+        const adapter = createQuestionsAdapter();
+        await adapter.answer(questionId, answer);
+        await syncCommunication();
+        setStatus('답변이 public mode에 전달되었습니다.', 'ok');
+      };
+
+      save().catch((error) => setStatus(error.message || '답변 저장에 실패했습니다.', 'error'));
       return;
     }
 
@@ -1195,6 +1560,7 @@
 
   function bindEvents() {
     els.teamForm?.addEventListener('submit', handleDemoSubmit);
+    els.publicTeamForm?.addEventListener('submit', handlePublicTeamSubmit);
     els.publicQuestionForm?.addEventListener('submit', handlePublicQuestionSubmit);
     els.lectureBroadcastForm?.addEventListener('submit', handleLectureBroadcastSubmit);
     els.lectureQuestionList?.addEventListener('click', handleLectureQuestionListClick);
@@ -1245,13 +1611,19 @@
         };
         updateConfigFields();
         manageAutoRefresh();
+        manageCommunicationRefresh();
         syncBoard();
+        syncCommunication();
       }
     });
   }
 
   function init() {
     state.settings.pageView = 'public';
+
+    if (isSupabaseConfigured()) {
+      state.settings.mode = 'live';
+    }
 
     if (!state.publicAuthorized) {
       showLectureGate(true, 'Public mode 비밀번호 0330을 입력하거나 창을 닫으십시오.', 'public');
@@ -1264,12 +1636,14 @@
     renderCommunication();
     maybeShowPublicAnnouncement();
     manageAutoRefresh();
+    manageCommunicationRefresh();
 
     if (!readJsonStorage(BOARD_STORAGE_KEY, []).length) {
       saveJsonStorage(BOARD_STORAGE_KEY, SAMPLE_TEAMS);
     }
 
     syncBoard();
+    syncCommunication();
   }
 
   init();

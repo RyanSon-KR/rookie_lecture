@@ -1052,6 +1052,14 @@
                 <input id="supabaseTable" type="text" placeholder="pretotype_board_entries" />
               </div>
               <div class="field-full">
+                <label for="supabaseQuestionsTable">Supabase questions table</label>
+                <input id="supabaseQuestionsTable" type="text" placeholder="pretotype_questions" />
+              </div>
+              <div class="field-full">
+                <label for="supabaseAnnouncementsTable">Supabase announcements table</label>
+                <input id="supabaseAnnouncementsTable" type="text" placeholder="pretotype_announcements" />
+              </div>
+              <div class="field-full">
                 <label for="formUrl">학생 입력 링크 (Tally / Google Form)</label>
                 <input id="formUrl" type="url" placeholder="https://tally.so/r/... 또는 https://forms.gle/..." />
               </div>
@@ -1116,6 +1124,45 @@
         </div>
 
         <div class="tool-grid" style="margin-top: 18px;">
+          <div class="tool-card public-only">
+            <h3>팀 정보 입력 (보드에 바로 반영)</h3>
+            <p class="small">Supabase 연결이 되어 있으면, 여기서 제출한 내용이 lecture mode 발표 보드에 실시간으로 누적됩니다.</p>
+            <form id="publicTeamForm" class="form-grid">
+              <div class="field">
+                <label for="publicTeamName">팀 이름</label>
+                <input id="publicTeamName" name="teamName" type="text" placeholder="예: 1팀 / 2팀" required />
+              </div>
+              <div class="field">
+                <label for="publicTeamItem">아이템</label>
+                <input id="publicTeamItem" name="teamItem" type="text" placeholder="예: 대학생 멘토 매칭" required />
+              </div>
+              <div class="field">
+                <label for="publicTeamTarget">타깃 고객</label>
+                <input id="publicTeamTarget" name="teamTarget" type="text" placeholder="예: 새내기 대학생" required />
+              </div>
+              <div class="field">
+                <label for="publicTeamCta">핵심 CTA</label>
+                <input id="publicTeamCta" name="teamCTA" type="text" placeholder="예: 첫 멘토링 신청하기" required />
+              </div>
+              <div class="field-full">
+                <label for="publicTeamProblem">해결하려는 문제</label>
+                <textarea id="publicTeamProblem" name="teamProblem" placeholder="예: 전공/진로 정보를 빠르게 얻기 어려움"></textarea>
+              </div>
+              <div class="field-full">
+                <label for="publicTeamBudget">예산/보유 자원 활용 계획</label>
+                <textarea id="publicTeamBudget" name="teamBudget" placeholder="예: 광고 2만 원 + 학내 커뮤니티 + 기존 SNS 활용"></textarea>
+              </div>
+              <div class="field-full">
+                <label for="publicTeamLinks">폼/랜딩 링크</label>
+                <input id="publicTeamLinks" name="teamLinks" type="url" placeholder="https://example.com" />
+              </div>
+              <div class="field-full dash-actions">
+                <button class="btn btn-primary" type="submit">제출하기</button>
+              </div>
+            </form>
+            <div id="publicStatus" class="status-line" data-tone="loading" style="margin-top: 12px;">Supabase 연결 시 제출하면 바로 반영됩니다.</div>
+          </div>
+
           <div class="tool-card public-only">
             <h3>참가자 질문 보내기</h3>
             <p class="small">public mode에서 질문을 보내면 lecture mode 화면에서 바로 보고 답변할 수 있습니다.</p>
